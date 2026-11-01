@@ -13,8 +13,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.9",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.2",
+    "jsonwebtoken": "^9.0.3",
     "socket.io": "^4.8.3",
+    "y-protocols": "^1.0.7",
     "y-socket.io": "^1.1.3"
   }
 }
