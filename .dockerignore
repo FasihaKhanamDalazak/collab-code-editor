@@ -1,2 +1,9 @@
 .env
-node_modules
+.env.*
+!.env.example
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+Backend/data/
+.git
