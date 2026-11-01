@@ -100,7 +100,7 @@ function LandingPage() {
         <div className="header-inner">
           <Brand />
           <nav className="header-nav" aria-label="Main navigation">
-            <a className="header-github" href="https://github.com/" target="_blank" rel="noreferrer">
+            <a className="header-github" href="https://github.com/FasihaKhanamDalazak/" target="_blank" rel="noreferrer">
               <Code2 size={16} /> GitHub
             </a>
             <Link className="button button-small button-secondary" to="/access?mode=join">Open editor</Link>
@@ -198,10 +198,10 @@ function LandingPage() {
       <footer className="site-footer">
         <div className="content-width footer-inner">
           <Brand />
-          <span className="footer-credit">Made by Your Name</span>
+          <span className="footer-credit">Made by Fasiha Khanam</span>
           <div className="footer-links">
-            <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer">LinkedIn</a>
-            <a href="https://github.com/" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://www.linkedin.com/in/fasihakhanam/" target="_blank" rel="noreferrer">LinkedIn</a>
+            <a href="https://github.com/FasihaKhanamDalazak/" target="_blank" rel="noreferrer">GitHub</a>
           </div>
         </div>
       </footer>
