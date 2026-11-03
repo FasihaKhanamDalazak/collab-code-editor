@@ -1,94 +1,185 @@
 # Pairspace
 
-Pairspace is a shared code room for pairing, teaching, interviews, and working
-through ideas together. Open a room, invite someone with a link, and edit in
-the same workspace.
+**Write code together, at the same time.**
 
-## Features
+Pairspace is a real-time collaborative code editor for pairing, interviews,
+teaching, and building together. Create a room, invite someone with a link, and
+work in the same editor without installing anything.
 
-- Live multi-user editing with Monaco and Yjs
-- Live participant presence and optional collaborator cursor labels
-- Six shared languages: JavaScript, TypeScript, Python, C++, Java, and Go
-- Shared code execution results through Judge0 CE
-- Six-character room codes, optional room passwords, and invite links
-- Hashed room passwords, short-lived room JWTs, and rate-limited endpoints
-- Room metadata and editor documents saved on the server
-- Responsive landing page, room setup flow, and editor interface
+[Open the live demo](https://d1xfu5caxjah7u.cloudfront.net/) ·
+[View the source](https://github.com/FasihaKhanamDalazak/collab-code-editor)
 
-## Requirements
+> **Demo security note:** The browser-to-CloudFront connection uses HTTPS, but
+> the current CloudFront-to-Application-Load-Balancer origin connection uses
+> HTTP. Use demo data only; do not enter sensitive code or passwords.
 
-- Node.js 20.19 or newer (or a current Node.js 22 release)
-- npm
-- Docker Desktop or a Docker Engine for container builds
+## What you can do
 
-## Local setup
+- **Edit together live** in a shared Monaco editor, synchronized with Yjs.
+- **See who's in the room** with live presence and optional collaborator
+  cursors.
+- **Run code together** in JavaScript, TypeScript, Python, C++, Java, or Go;
+  room members see the shared result.
+- **Create private rooms** with optional passwords, short room codes, and
+  shareable invite links.
+- **Keep working across visits** with server-side Yjs document persistence.
+- **Use it on any screen** with a responsive landing page, room flow, and
+  editor.
 
-1. Copy `.env.example` to `Backend/.env` and set a long, unique `JWT_SECRET`.
-2. Install and start the backend:
+## Built with
 
-   ```powershell
-   cd Backend
-   npm install
-   npm run dev
-   ```
-
-3. In a second terminal, install and start the frontend:
-
-   ```powershell
-   cd Frontend
-   npm install
-   npm run dev
-   ```
-
-4. Open the Vite URL (normally `http://localhost:5173`). The Vite development
-   server proxies `/api` and `/socket.io` to the backend at
-   `http://localhost:3000`.
-
-The backend reads `Backend/.env`. `Frontend/.env.local` may set
-`VITE_API_PROXY_TARGET` if the backend is listening on a different address.
-
-## Environment variables
-
-| Variable | Default | Description |
+| Frontend | Real-time collaboration | Backend and deployment |
 | --- | --- | --- |
-| `PORT` | `3000` | HTTP and Socket.IO server port |
-| `JWT_SECRET` | Temporary random secret in development; required in production | Secret used to sign room JWTs. Set a stable secret so tokens remain verifiable after a restart. |
-| `DATA_DIR` | `Backend/data` | Directory for room metadata and Yjs LevelDB documents |
-| `JUDGE0_URL` | `https://ce.judge0.com` | Judge0 CE base URL |
-| `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed browser origin for Socket.IO in development |
-| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Backend target used by the Vite development proxy |
+| React 19, Vite, Tailwind CSS 4 | Yjs, y-monaco, y-socket.io, Socket.IO | Node.js 24, Express 5, Docker, AWS ECS, ECR, CloudFront |
+| Monaco Editor, React Router | Awareness and room-scoped documents | LevelDB persistence, Judge0 CE |
 
-Never commit `.env` files or real signing secrets. In production, set
-`JWT_SECRET` to a unique, high-entropy value through your deployment's secret
-manager. `DATA_DIR` should point to writable persistent storage.
+## How it works
+
+```mermaid
+flowchart LR
+    Browser[React + Monaco browser] <-->|HTTPS / WSS| Edge[CloudFront]
+    Edge <-->|HTTP / WebSocket| ALB[Application Load Balancer]
+    ALB <-->|HTTP / Socket.IO| App[Node.js + Express on ECS]
+    App --> Store[(Room metadata + LevelDB)]
+    App --> Judge[Judge0 CE]
+```
+
+The browser creates one Yjs document per room. Shared text, language settings,
+and the latest execution result travel through a room-specific Socket.IO
+namespace. The server persists Yjs updates and room metadata. Room passwords
+are bcrypt hashes; joining a room issues a short-lived JWT, which is checked by
+the API and bound to the matching websocket room.
+
+## Try the live demo
+
+Open the [Pairspace demo](https://d1xfu5caxjah7u.cloudfront.net/), then:
+
+1. Choose **Create a room** and enter a display name.
+2. Open the room and check that its connection status says **Connected**.
+3. Share the invite link with another browser to try simultaneous editing.
+4. Choose a language and run a small example to see shared output.
+
+CloudFront's default domain provides HTTPS to the browser. The origin hop to
+the load balancer is currently HTTP, so this demo is for portfolio evaluation
+with non-sensitive data.
+
+## Run locally
+
+### Requirements
+
+- Node.js 22.12 or newer (Node.js 24 LTS recommended)
+- npm
+- Docker Desktop or another Docker Engine (optional, for the container workflow)
+
+### Start the backend
+
+From the repository root, copy the example configuration:
+
+```powershell
+Copy-Item .env.example Backend/.env
+```
+
+Set a long, unique `JWT_SECRET` in `Backend/.env`. Generate one locally with:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Then start the API and Socket.IO server:
+
+```powershell
+cd Backend
+npm install
+npm start
+```
+
+### Start the frontend
+
+In a second terminal:
+
+```powershell
+cd Frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>. Vite proxies `/api` and `/socket.io` to
+<http://localhost:3000>. If the backend uses another address, set
+`VITE_API_PROXY_TARGET` in `Frontend/.env.local`.
+
+## Configuration
+
+The backend loads `Backend/.env`. Never commit `.env` files or share secrets.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3000` | HTTP and Socket.IO port |
+| `JWT_SECRET` | Temporary random secret in development; required in production | Signs room tokens; use one stable, high-entropy value across restarts. |
+| `DATA_DIR` | `Backend/data` locally; `/app/data` in the container | Room metadata and Yjs LevelDB persistence directory |
+| `JUDGE0_URL` | `https://ce.judge0.com` | Judge0 CE endpoint used to execute submitted programs |
+| `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed Socket.IO browser origin |
+| `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Vite development proxy destination |
 
 ## Docker
 
-Build and run the single-port production app from the repository root:
+Build and run the production image from the repository root:
 
 ```powershell
 docker build -t pairspace .
-docker run --rm -p 3000:3000 -e JWT_SECRET="replace-with-a-long-random-secret" -v pairspace-data:/app/data pairspace
+docker volume create pairspace-data
+docker run --rm -p 3000:3000 `
+  -e JWT_SECRET="replace-with-a-long-random-secret" `
+  -v pairspace-data:/app/data `
+  pairspace
 ```
 
-Open `http://localhost:3000`. The named volume mounted at `/app/data` keeps
-room metadata and Yjs documents across container restarts. A host directory can
-be mounted instead, for example `-v C:\pairspace-data:/app/data` in
-PowerShell. Back up this directory to preserve rooms and editor contents.
+Open <http://localhost:3000>. The image uses Node.js 24, runs as the non-root
+`node` user, includes a `/health` container health check, and serves the built
+frontend, API, and Socket.IO from one port. The named volume preserves room
+data when the container is replaced.
 
-The multi-stage image builds the Vite frontend, copies `dist` into the backend,
-and serves the SPA, API, and Socket.IO from port 3000.
+## AWS deployment
 
-## Architecture
+The portfolio deployment uses **Amazon ECR** for the image, **ECS Fargate** to
+run the container, an **Application Load Balancer** for ingress, and
+**CloudFront** for the public HTTPS endpoint. Image publishing and ECS
+deployment are currently manual; pushing a commit to GitHub does not
+automatically deploy it.
 
-The React client creates one Yjs document for the room. `y-socket.io` syncs its
-shared text, `settings` map, and `run` map through Socket.IO; the server stores
-document updates in LevelDB. Each room uses its own `/yjs|<roomId>` namespace.
-Joining a room returns a 12-hour JWT containing its room code and username.
-Both room APIs and the websocket namespace verify the token and its room
-binding. Room passwords are stored as bcrypt hashes in `rooms.json`, never as
-plaintext. Code execution requests are authorized by the room JWT and sent to
-Judge0 CE; the completed result is written to the shared Yjs `run` map.
+For each application release:
+
+1. Build the image for the target runtime architecture.
+2. Tag it with a unique version and push it to ECR.
+3. Update the ECS task definition to that image tag and deploy the revision.
+
+Example (set your account ID and use your ECR region/repository):
+
+```bash
+ACCOUNT_ID=YOUR_AWS_ACCOUNT_ID
+docker buildx build --platform linux/amd64 \
+  -t "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/pairspace/server:v1" \
+  --push .
+```
+
+For ECS configuration:
+
+- Set the container port and health check to `3000` and `/health`.
+- Provide `JWT_SECRET` securely at runtime, not in the image.
+- Mount persistent storage at `/app/data` if room data must survive task
+  replacement.
+- Keep the service at **one task**. Room metadata is held in process memory
+  and the LevelDB store is intended for a single writer; horizontal scaling
+  needs shared state and coordination.
+- Configure CloudFront behaviors for `/api/*` and `/socket.io/*` to disable
+  caching and forward the required query strings and websocket handshake
+  headers (for example, with the `AllViewerExceptHostHeader` origin request
+  policy).
+- Allow outbound HTTPS from the task to the configured Judge0 endpoint.
+
+CloudFront HTTPS protects the viewer-to-CloudFront connection. For full
+transport encryption, also configure HTTPS between CloudFront and the origin.
+AWS resource availability and charges depend on the account plan, region, and
+usage; verify current pricing before changing infrastructure.
 
 ## Validation
 
@@ -98,4 +189,8 @@ npm run lint
 npm run build
 ```
 
-The backend can be started with `npm start` from `Backend`.
+Check the backend syntax from the repository root with:
+
+```powershell
+node --check Backend/server.js
+```
